@@ -22,7 +22,6 @@ import (
 	
 	// SafeHarbor packages:
 	"utilities/utils"
-	"safeharbor/apitypes"
 	"utilities/rest"
 )
 
@@ -275,13 +274,13 @@ func (dockerSvcs *DockerServices) BuildDockerfile(dockerfileExternalFilePath,
 	Removing intermediate container 3bac4e50b6f9
 	Successfully built 03dcea1bc8a6
  */
-func ParseBuildCommandOutput(buildOutputStr string) (*apitypes.DockerBuildOutput, error) {
+func ParseBuildCommandOutput(buildOutputStr string) (*DockerBuildOutput, error) {
 	
-	var output *apitypes.DockerBuildOutput = apitypes.NewDockerBuildOutput()
+	var output *DockerBuildOutput = NewDockerBuildOutput()
 	
 	var lines = strings.Split(buildOutputStr, "\n")
 	var state int = 1
-	var step *apitypes.DockerBuildStep
+	var step *DockerBuildStep
 	var lineNo int = 0
 	for {
 		
@@ -368,7 +367,7 @@ func ParseBuildCommandOutput(buildOutputStr string) (*apitypes.DockerBuildOutput
  * Parse the string that is returned by the docker daemon REST build function.
  * Partial results are returned, but with an error.
  */
-func ParseBuildRESTOutput(restResponse string) (*apitypes.DockerBuildOutput, error) {
+func ParseBuildRESTOutput(restResponse string) (*DockerBuildOutput, error) {
 	
 	var outputstr string
 	var err error
@@ -403,7 +402,7 @@ func ParseBuildRESTOutput(restResponse string) (*apitypes.DockerBuildOutput, err
 		Obtain opt_assignment, if any.
 		If any error, abort.
  */
-func ParseDockerfile(dockerfileContent string) ([]*apitypes.DockerfileExecParameterValueDesc, error) {
+func ParseDockerfile(dockerfileContent string) ([]*DockerfileExecParameterValueDesc, error) {
 	
 	var isAlphaChar = func(c rune) bool {
 		return ((c >= 'a') && (c <= 'z')) || ((c >= 'A') && (c <= 'Z')) ||
@@ -443,7 +442,7 @@ func ParseDockerfile(dockerfileContent string) ([]*apitypes.DockerfileExecParame
 	
 	var lines = strings.Split(dockerfileContent, "\n")
 	
-	var paramValueDescs = make([]*apitypes.DockerfileExecParameterValueDesc, 0)
+	var paramValueDescs = make([]*DockerfileExecParameterValueDesc, 0)
 	var lineNo = -1
 	for {
 		lineNo++
@@ -471,8 +470,8 @@ func ParseDockerfile(dockerfileContent string) ([]*apitypes.DockerfileExecParame
 			if equalSign == "=" {
 				stringExpr = restOfLine
 			}
-			var paramValueDesc *apitypes.DockerfileExecParameterValueDesc
-			paramValueDesc = apitypes.NewDockerfileExecParameterValueDesc(argName, stringExpr) 
+			var paramValueDesc *DockerfileExecParameterValueDesc
+			paramValueDesc = NewDockerfileExecParameterValueDesc(argName, stringExpr) 
 			paramValueDescs = append(paramValueDescs, paramValueDesc)
 		}
 	}
@@ -594,6 +593,25 @@ func ConstructDockerImageName(shRealmName,
 	shRepoName, shImageName, version string) (imageName, tag string) {
 
 	return (shRealmName + "/" + shRepoName + "/" + shImageName), version
+}
+
+/*******************************************************************************
+ * 
+ */
+type DockerfileExecParameterValueDesc struct {
+	rest.ParameterValueDesc
+}
+
+func NewDockerfileExecParameterValueDesc(name string, strValue string) *DockerfileExecParameterValueDesc {
+	var paramValueDesc = rest.NewParameterValueDesc(name, strValue)
+	return &DockerfileExecParameterValueDesc{
+		ParameterValueDesc: *paramValueDesc,
+	}
+}
+
+func (desc *DockerfileExecParameterValueDesc) AsJSON() string {
+	return fmt.Sprintf(" {\"Name\": \"%s\", \"Value\": \"%s\"}",
+		desc.Name, rest.EncodeStringForJSON(desc.StringValue))
 }
 
 

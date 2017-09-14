@@ -4,6 +4,7 @@ PRODUCTNAME=Docker Utilities
 ORG=Scaled Markets
 PACKAGENAME=docker
 
+PROJECTROOT := $(shell pwd)
 UTILITIESDIR:=$(realpath $(PROJECTROOT)/../utilities)
 
 .DELETE_ON_ERROR:
