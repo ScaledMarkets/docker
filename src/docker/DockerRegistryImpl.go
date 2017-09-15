@@ -75,7 +75,7 @@ func OpenDockerRegistryConnection(host string, port int, userId string,
 		userId, password, host, port))
 	
 	var registry *DockerRegistryImpl = &DockerRegistryImpl{
-		RestContext: *rest.CreateTCPRestContext("http", host, port, userId, password, noop),
+		RestContext: *rest.CreateTCPRestContext("http", host, port, userId, password, nil, noop),
 	}
 	
 	fmt.Println("Pinging registry...")
