@@ -639,6 +639,9 @@ func (desc *DockerfileExecParameterValueDesc) AsJSON() string {
 	{"stream":" ---\u003e Using cache\n"}
 	{"stream":" ---\u003e cb0948362f97\n"}
 	{"stream":"Successfully built cb0948362f97\n"}
+	
+ * Another sample:
+	{"status":"Pulling from library/alpine","id":"latest"}
  */
 func extractBuildOutputFromRESTResponse(restResponse string) (string, error) {
 	
@@ -664,41 +667,47 @@ func extractBuildOutputFromRESTResponse(restResponse string) (string, error) {
 		if ! isType { return "", utilities.ConstructServerError(
 			"Unexpected format for json build output: " + string(lineBytes))
 		}
-		obj = msgMap["stream"]
 		var value string
+		obj = msgMap["stream"]
 		value, isType = obj.(string)
 		if obj == nil {
-			// Check for error message.
-			obj = msgMap["error"]
-			if obj == nil { return "", utilities.ConstructServerError(
-				"Unexpected JSON field in error message: " + string(lineBytes))
+			obj = msgMap["status"]
+			value, isType = obj.(string)
+			if obj == nil {
+				// Check for error message.
+				obj = msgMap["error"]
+				if obj == nil {
+				}
+				if ! isType { return "", utilities.ConstructServerError(
+					"Unexpected type in json field value: " + reflect.TypeOf(obj).String())
+				}
+				
+				// Error message found.
+				var errMsg string
+				errMsg, isType = obj.(string)
+				if ! isType { return "", utilities.ConstructServerError(
+					"Unexpected data in json error value; line: " + string(lineBytes))
+				}
+	
+				// Get error detail message.
+				obj = msgMap["errorDetail"]
+				if obj == nil { return "", utilities.ConstructServerError(
+					"Unexpected JSON field in errorDetail message: " + string(lineBytes))
+				}
+				var errDetailMsgJSON map[string]interface{}
+				errDetailMsgJSON, isType = obj.(map[string]interface{})
+				if ! isType { return "", utilities.ConstructServerError(
+					"Unexpected data in json errorDetail value; line: " + string(lineBytes))
+				}
+				obj = errDetailMsgJSON["message"]
+				if obj == nil { return "", utilities.ConstructServerError(
+					"No message field in errorDetail message: " + string(lineBytes))
+				}
+				var errDetailMsg string
+				errDetailMsg, isType = obj.(string)
+				
+				return "", utilities.ConstructUserError(errMsg + "; " + errDetailMsg)
 			}
-			
-			// Error message found.
-			var errMsg string
-			errMsg, isType = obj.(string)
-			if ! isType { return "", utilities.ConstructServerError(
-				"Unexpected data in json error value; line: " + string(lineBytes))
-			}
-
-			// Get error detail message.
-			obj = msgMap["errorDetail"]
-			if obj == nil { return "", utilities.ConstructServerError(
-				"Unexpected JSON field in errorDetail message: " + string(lineBytes))
-			}
-			var errDetailMsgJSON map[string]interface{}
-			errDetailMsgJSON, isType = obj.(map[string]interface{})
-			if ! isType { return "", utilities.ConstructServerError(
-				"Unexpected data in json errorDetail value; line: " + string(lineBytes))
-			}
-			obj = errDetailMsgJSON["message"]
-			if obj == nil { return "", utilities.ConstructServerError(
-				"No message field in errorDetail message: " + string(lineBytes))
-			}
-			var errDetailMsg string
-			errDetailMsg, isType = obj.(string)
-			
-			return "", utilities.ConstructUserError(errMsg + "; " + errDetailMsg)
 		}
 		if ! isType { return "", utilities.ConstructServerError(
 			"Unexpected type in json field value: " + reflect.TypeOf(obj).String())
