@@ -21,8 +21,8 @@ import (
 	"reflect"
 	
 	// SafeHarbor packages:
-	"utilities/utils"
-	"utilities/rest"
+	"utilities"
+	"rest"
 )
 
 /* Replace with REST calls.
@@ -80,13 +80,13 @@ func (dockerSvcs *DockerServices) BuildDockerfile(dockerfileExternalFilePath,
 	}
 	
 	if exists {
-		return "", utils.ConstructUserError(
+		return "", utilities.ConstructUserError(
 			"Image with name " + dockerImageName + ":" + tag + " already exists.")
 	}
 	
 	// Create a temporary directory to serve as the build context.
 	var tempDirPath string
-	tempDirPath, err = utils.MakeTempDir()
+	tempDirPath, err = utilities.MakeTempDir()
 	if err != nil { return "", err }
 	//....TO DO: Is the above a security problem? Do we need to use a private
 	// directory? I think so.
@@ -133,11 +133,11 @@ func (dockerSvcs *DockerServices) BuildDockerfile(dockerfileExternalFilePath,
 		
 		// Obtain image as a file.
 		var tempDirPath2 string
-		tempDirPath2, err = utils.MakeTempDir()
+		tempDirPath2, err = utilities.MakeTempDir()
 		if err != nil { return outputStr, err }
 		defer os.RemoveAll(tempDirPath2)
 		var imageFile *os.File
-		imageFile, err = utils.MakeTempFile(tempDirPath2, "")
+		imageFile, err = utilities.MakeTempFile(tempDirPath2, "")
 		if err != nil { return outputStr, err }
 		var imageFilePath = imageFile.Name()
 		err = dockerSvcs.Engine.GetImage(imageFullName, imageFilePath)
@@ -154,11 +154,11 @@ func (dockerSvcs *DockerServices) BuildDockerfile(dockerfileExternalFilePath,
 		if digest == nil {
 			fmt.Println("Digest is nil; map returned from GetImageInfo:")
 			rest.PrintMap(info)
-			return outputStr, utils.ConstructServerError("Digest is nil") }
-		if ! isType { return outputStr, utils.ConstructServerError(
+			return outputStr, utilities.ConstructServerError("Digest is nil") }
+		if ! isType { return outputStr, utilities.ConstructServerError(
 			"checksum is not a string: it is a " + reflect.TypeOf(digest).String())
 		}
-		if digestString == "" { return outputStr, utils.ConstructServerError(
+		if digestString == "" { return outputStr, utilities.ConstructServerError(
 			"No checksum field found for image")
 		}
 		
@@ -285,7 +285,7 @@ func ParseBuildCommandOutput(buildOutputStr string) (*DockerBuildOutput, error) 
 	for {
 		
 		if lineNo >= len(lines) {
-			return output, utils.ConstructServerError("Incomplete")
+			return output, utilities.ConstructServerError("Incomplete")
 		}
 		
 		var line string = lines[lineNo]
@@ -323,7 +323,7 @@ func ParseBuildCommandOutput(buildOutputStr string) (*DockerBuildOutput, error) 
 			therest = strings.TrimPrefix(line, "Error")
 			if len(therest) < len(line) {
 				output.ErrorMessage = therest
-				return output, utils.ConstructServerError(output.ErrorMessage)
+				return output, utilities.ConstructServerError(output.ErrorMessage)
 			}
 			
 			lineNo++
@@ -334,7 +334,7 @@ func ParseBuildCommandOutput(buildOutputStr string) (*DockerBuildOutput, error) 
 			
 			if step == nil {
 				output.ErrorMessage = "Internal error: should not happen"
-				return output, utils.ConstructServerError(output.ErrorMessage)
+				return output, utilities.ConstructServerError(output.ErrorMessage)
 			}
 
 			var therest = strings.TrimPrefix(line, " ---> ")
@@ -356,11 +356,11 @@ func ParseBuildCommandOutput(buildOutputStr string) (*DockerBuildOutput, error) 
 			
 		default:
 			output.ErrorMessage = "Internal error: Unrecognized state"
-			return output, utils.ConstructServerError(output.ErrorMessage)
+			return output, utilities.ConstructServerError(output.ErrorMessage)
 		}
 	}
 	output.ErrorMessage = "Did not find a final image Id"
-	return output, utils.ConstructServerError(output.ErrorMessage)
+	return output, utilities.ConstructServerError(output.ErrorMessage)
 }
 
 /*******************************************************************************
@@ -461,7 +461,7 @@ func ParseDockerfile(dockerfileContent string) ([]*DockerfileExecParameterValueD
 			// Looking for instruction parts.
 			var argName string
 			argName, restOfLine = getToken(restOfLine)
-			if argName == "" { return nil, utils.ConstructUserError(
+			if argName == "" { return nil, utilities.ConstructUserError(
 				"No argument name in ARG instruction") }
 			// Looking for opt_assignment, if any.
 			var equalSign string
@@ -488,7 +488,7 @@ func (dockerSvcs *DockerServices) SaveImage(imageName, tag string) (string, erro
 	fmt.Println("Creating temp file to save the image to...")
 	var tempFile *os.File
 	var err error
-	tempFile, err = utils.MakeTempFile("", "")
+	tempFile, err = utilities.MakeTempFile("", "")
 	// TO DO: Is the above a security issue?
 	if err != nil { return "", err }
 	var tempFilePath = tempFile.Name()
@@ -522,21 +522,21 @@ func (dockerSvcs *DockerServices) GetDigest(imageId string) ([]byte, error) {
 		var err error
 		info, err = dockerSvcs.Engine.GetImageInfo(imageName)
 		var obj interface{} = info["RepoDigests"]
-		if obj == nil { return nil, utils.ConstructServerError("No digest found") }
+		if obj == nil { return nil, utilities.ConstructServerError("No digest found") }
 		var objAr []interface{}
 		var isType bool
 		objAr, isType = obj.([]interface)
-		if ! isType { return nil, utils.ConstructServerError("RepoDigests field is not an array") }
+		if ! isType { return nil, utilities.ConstructServerError("RepoDigests field is not an array") }
 		for _, obj := range objAr {
 			var str string
 			str, isType = obj.(string)
-			if ! isType { return nil, utils.ConstructError("Digest value is not a string") }
+			if ! isType { return nil, utilities.ConstructError("Digest value is not a string") }
 			var parts []string
 			parts = strings.Split(str, "@")
-			if len(parts) != 2 { return nil, utils.ConstructError("Did not find digest in string") }
+			if len(parts) != 2 { return nil, utilities.ConstructError("Did not find digest in string") }
 			var digest = parts[1]
 			parts = strings.Split(digest, ":")
-			if len(parts) != 2 { return nil, utils.ConstructError("Digest ill-formed - no ':'") }
+			if len(parts) != 2 { return nil, utilities.ConstructError("Digest ill-formed - no ':'") }
 			var hashValue = parts[1]
 			....
 		}
@@ -581,8 +581,8 @@ func (dockerSvcs *DockerServices) RemoveDockerImage(repoName, tag string) error 
 func NamePartConformsToDockerRules(part string) error {
 	
 	matched, err := regexp.MatchString("^[a-z0-9\\-_]*$", part)
-	if err != nil { return utils.ConstructServerError("Unexpected internal error") }
-	if ! matched { return utils.ConstructServerError("Name does not conform to docker rules") }
+	if err != nil { return utilities.ConstructServerError("Unexpected internal error") }
+	if ! matched { return utilities.ConstructServerError("Name does not conform to docker rules") }
 	return nil
 }
 
@@ -661,7 +661,7 @@ func extractBuildOutputFromRESTResponse(restResponse string) (string, error) {
 		var isType bool
 		var msgMap map[string]interface{}
 		msgMap, isType = obj.(map[string]interface{})
-		if ! isType { return "", utils.ConstructServerError(
+		if ! isType { return "", utilities.ConstructServerError(
 			"Unexpected format for json build output: " + string(lineBytes))
 		}
 		obj = msgMap["stream"]
@@ -670,37 +670,37 @@ func extractBuildOutputFromRESTResponse(restResponse string) (string, error) {
 		if obj == nil {
 			// Check for error message.
 			obj = msgMap["error"]
-			if obj == nil { return "", utils.ConstructServerError(
+			if obj == nil { return "", utilities.ConstructServerError(
 				"Unexpected JSON field in error message: " + string(lineBytes))
 			}
 			
 			// Error message found.
 			var errMsg string
 			errMsg, isType = obj.(string)
-			if ! isType { return "", utils.ConstructServerError(
+			if ! isType { return "", utilities.ConstructServerError(
 				"Unexpected data in json error value; line: " + string(lineBytes))
 			}
 
 			// Get error detail message.
 			obj = msgMap["errorDetail"]
-			if obj == nil { return "", utils.ConstructServerError(
+			if obj == nil { return "", utilities.ConstructServerError(
 				"Unexpected JSON field in errorDetail message: " + string(lineBytes))
 			}
 			var errDetailMsgJSON map[string]interface{}
 			errDetailMsgJSON, isType = obj.(map[string]interface{})
-			if ! isType { return "", utils.ConstructServerError(
+			if ! isType { return "", utilities.ConstructServerError(
 				"Unexpected data in json errorDetail value; line: " + string(lineBytes))
 			}
 			obj = errDetailMsgJSON["message"]
-			if obj == nil { return "", utils.ConstructServerError(
+			if obj == nil { return "", utilities.ConstructServerError(
 				"No message field in errorDetail message: " + string(lineBytes))
 			}
 			var errDetailMsg string
 			errDetailMsg, isType = obj.(string)
 			
-			return "", utils.ConstructUserError(errMsg + "; " + errDetailMsg)
+			return "", utilities.ConstructUserError(errMsg + "; " + errDetailMsg)
 		}
-		if ! isType { return "", utils.ConstructServerError(
+		if ! isType { return "", utilities.ConstructServerError(
 			"Unexpected type in json field value: " + reflect.TypeOf(obj).String())
 		}
 

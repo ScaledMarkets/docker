@@ -20,8 +20,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	
-	"utilities/utils"
-	"utilities/rest"
+	"utilities"
+	"rest"
 )
 
 type DockerEngineImpl struct {
@@ -72,7 +72,7 @@ func (engine *DockerEngineImpl) Ping() error {
 	var err error
 	response, err = engine.SendBasicGet(uri)
 	if err != nil { return err }
-	err = utils.GenerateError(response.StatusCode, response.Status + "; during Ping")
+	err = utilities.GenerateError(response.StatusCode, response.Status + "; during Ping")
 	if err != nil { return err }
 	return nil
 }
@@ -87,7 +87,7 @@ func (engine *DockerEngineImpl) GetImages() ([]map[string]interface{}, error) {
 	var err error
 	response, err = engine.SendBasicGet(uri)
 	if err != nil { return nil, err }
-	err = utils.GenerateError(response.StatusCode, response.Status)
+	err = utilities.GenerateError(response.StatusCode, response.Status)
 	if err != nil { return nil, err }
 	var imageMaps []map[string]interface{}
 	imageMaps, err = rest.ParseResponseBodyToMaps(response.Body)
@@ -106,7 +106,7 @@ func (engine *DockerEngineImpl) GetImageInfo(imageName string) (map[string]inter
 	var err error
 	response, err = engine.SendBasicGet(uri)
 	if err != nil { return nil, err }
-	err = utils.GenerateError(response.StatusCode, response.Status)
+	err = utilities.GenerateError(response.StatusCode, response.Status)
 	if err != nil { return nil, err }
 	var imageMap map[string]interface{}
 	imageMap, err = rest.ParseResponseBodyToMap(response.Body)
@@ -125,31 +125,31 @@ func (engine *DockerEngineImpl) GetImage(repoNameAndTag, filepath string) error 
 	var err error
 	response, err = engine.SendBasicGet(uri)
 	if err != nil { return err }
-	err = utils.GenerateError(response.StatusCode, response.Status)
+	err = utilities.GenerateError(response.StatusCode, response.Status)
 	if err != nil { return err }
 	
 	// Open the destination file to write the image to.
 	defer response.Body.Close()
 	var imageFile *os.File
 	imageFile, err = os.OpenFile(filepath, os.O_WRONLY, 0600)
-	if err != nil { return utils.ConstructServerError(fmt.Sprintf(
+	if err != nil { return utilities.ConstructServerError(fmt.Sprintf(
 		"When opening file '%s': %s", filepath, err.Error()))
 	}
 	
 	// Copy the response body to the destination image file.
 	var reader io.ReadCloser = response.Body
 	_, err = io.Copy(imageFile, reader)
-	if err != nil { return utils.ConstructServerError(fmt.Sprintf(
+	if err != nil { return utilities.ConstructServerError(fmt.Sprintf(
 		"When writing layer file '%s': %s", imageFile.Name(), err.Error()))
 	}
 	
 	// Verify that content was actually copied.
 	var fileInfo os.FileInfo
 	fileInfo, err = imageFile.Stat()
-	if err != nil { return utils.ConstructServerError(fmt.Sprintf(
+	if err != nil { return utilities.ConstructServerError(fmt.Sprintf(
 		"When getting status of layer file '%s': %s", imageFile.Name(), err.Error()))
 	}
-	if fileInfo.Size() == 0 { return utils.ConstructServerError(fmt.Sprintf(
+	if fileInfo.Size() == 0 { return utilities.ConstructServerError(fmt.Sprintf(
 		"Layer file that was written, '%s', has zero size", imageFile.Name()))
 	}
 	return nil
@@ -163,7 +163,7 @@ func (engine *DockerEngineImpl) GetImage(repoNameAndTag, filepath string) error 
 func (engine *DockerEngineImpl) BuildImage(buildDirPath, imageFullName string,
 	dockerfileName string, paramNames, paramValues []string) (string, error) {
 
-	if len(paramNames) != len(paramValues) { return "", utils.ConstructServerError(
+	if len(paramNames) != len(paramValues) { return "", utilities.ConstructServerError(
 		"Mismatch in number of param names and values") }
 	
 	// https://docs.docker.com/engine/reference/api/docker_remote_api_v1.23/#build-image-from-a-dockerfile
@@ -181,11 +181,11 @@ func (engine *DockerEngineImpl) BuildImage(buildDirPath, imageFullName string,
 	var tarFile *os.File
 	var err error
 	var tempDirPath string
-	tempDirPath, err = utils.MakeTempDir()
+	tempDirPath, err = utilities.MakeTempDir()
 	if err != nil { return "", err }
 	defer os.RemoveAll(tempDirPath)
-	tarFile, err = utils.MakeTempFile(tempDirPath, "")
-	if err != nil { return "", utils.ConstructServerError(fmt.Sprintf(
+	tarFile, err = utilities.MakeTempFile(tempDirPath, "")
+	if err != nil { return "", utilities.ConstructServerError(fmt.Sprintf(
 		"When creating temp file '%s': %s", tarFile.Name(), err.Error()))
 	}
 	
@@ -252,7 +252,7 @@ func (engine *DockerEngineImpl) BuildImage(buildDirPath, imageFullName string,
 	response, err = engine.SendBasicStreamPost(queryParamString, headers, tarReader)
 	defer response.Body.Close()
 	if err != nil { return "", err }
-	err = utils.GenerateError(response.StatusCode, response.Status)
+	err = utilities.GenerateError(response.StatusCode, response.Status)
 	if err != nil { return "", err }
 	
 	var bytes []byte
@@ -276,7 +276,7 @@ func (engine *DockerEngineImpl) TagImage(imageName, hostAndRepoName, tag string)
 	var values = []string{ hostAndRepoName, tag }
 	response, err = engine.SendBasicFormPost(uri, names, values)
 	if err != nil { return err }
-	return utils.GenerateError(response.StatusCode, response.Status)
+	return utilities.GenerateError(response.StatusCode, response.Status)
 }
 
 
@@ -308,7 +308,7 @@ func (engine *DockerEngineImpl) PushImage(repoFullName, tag, regUserId, regPass,
 	response, err = engine.SendBasicFormPostWithHeaders(uri, parmNames, parmValues, headers)
 	if err != nil { return err }
 	
-	return utils.GenerateError(response.StatusCode, response.Status)
+	return utilities.GenerateError(response.StatusCode, response.Status)
 	
 	// Apr 25 20:46:25 ip-172-31-41-187.us-west-2.compute.internal docker[1092]:
 	// time="2016-04-25T20:46:25.066856155Z" level=error
@@ -328,5 +328,5 @@ func (engine *DockerEngineImpl) DeleteImage(repoName, tag string) error {
 	var err error
 	response, err = engine.SendBasicDelete(uri)
 	if err != nil { return err }
-	return utils.GenerateError(response.StatusCode, response.Status)
+	return utilities.GenerateError(response.StatusCode, response.Status)
 }

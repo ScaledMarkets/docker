@@ -4,7 +4,7 @@ import (
 	"fmt"
 	
 	// ScaledMarkets packages:
-	"utilities/rest"
+	"rest"
 )
 
 /*******************************************************************************
