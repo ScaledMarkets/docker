@@ -686,18 +686,33 @@ func extractBuildOutputFromRESTResponse(restResponse string) (string, error) {
 		}
 		fmt.Println("extractBuildOutputFromRESTResponse: A.4")  // debug
 		var value string
-		obj = msgMap["stream"]
-		value, isType = obj.(string)
-		if obj == nil {
-			obj = msgMap["status"]
-			value, isType = obj.(string)
-			if obj == nil {
-				// Check for error message.
-				obj = msgMap["error"]
-				if obj == nil {
-					fmt.Println("Warning: ignoring message: " + string(lineBytes))
-				} else {
-					fmt.Println("extractBuildOutputFromRESTResponse: A.4.1")  // debug
+		
+		for key, obj := range msgMap {
+			
+			switch key {
+			
+				case "stream":
+					value, isType = obj.(string)
+					if ! isType { return "", utilities.ConstructServerError(
+						"Unexpected type in json field value: " + reflect.TypeOf(obj).String())
+					}
+					output = output + value
+					
+				case "status":
+					value, isType = obj.(string)
+					if ! isType { return "", utilities.ConstructServerError(
+						"Unexpected type in json field value: " + reflect.TypeOf(obj).String())
+					}
+					output = output + value
+					
+				case "aux":
+					value, isType = obj.(string)
+					if ! isType { return "", utilities.ConstructServerError(
+						"Unexpected type in json field value: " + reflect.TypeOf(obj).String())
+					}
+					output = output + value
+					
+				case "error":
 					
 					// Error message found.
 					var errMsg string
@@ -731,15 +746,14 @@ func extractBuildOutputFromRESTResponse(restResponse string) (string, error) {
 					errDetailMsg, isType = obj.(string)
 					
 					return "", utilities.ConstructUserError(errMsg + "; " + errDetailMsg)
-				}
+				
+				default:
+					fmt.Println("Warning: ignoring message: " + string(lineBytes))
+					
 			}
 		}
+		
 		fmt.Println("extractBuildOutputFromRESTResponse: A.5")  // debug
-		if ! isType { return "", utilities.ConstructServerError(
-			"Unexpected type in json field value: " + reflect.TypeOf(obj).String())
-		}
-
-		output = output + value
 	}
 	fmt.Println("extractBuildOutputFromRESTResponse: B")  // debug
 	
