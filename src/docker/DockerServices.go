@@ -276,6 +276,11 @@ func (dockerSvcs *DockerServices) BuildDockerfile(dockerfileExternalFilePath,
  */
 func ParseBuildCommandOutput(buildOutputStr string) (*DockerBuildOutput, error) {
 	
+	fmt.Println("ParseBuildCommandOutput: A")  // debug
+	fmt.Println("Build output:")  // debug
+	fmt.Println(buildOutputStr)  // debug
+	fmt.Println("End of build output.")  // debug
+	
 	var output *DockerBuildOutput = NewDockerBuildOutput()
 	
 	var lines = strings.Split(buildOutputStr, "\n")
@@ -369,11 +374,17 @@ func ParseBuildCommandOutput(buildOutputStr string) (*DockerBuildOutput, error) 
  */
 func ParseBuildRESTOutput(restResponse string) (*DockerBuildOutput, error) {
 	
+	fmt.Println("ParseBuildRESTOutput: A")  // debug
 	var outputstr string
 	var err error
 	outputstr, err = extractBuildOutputFromRESTResponse(restResponse)
+	fmt.Println("ParseBuildRESTOutput: B")  // debug
 	if err != nil { return nil, err }
-	return ParseBuildCommandOutput(outputstr)
+	fmt.Println("ParseBuildRESTOutput: C")  // debug
+	var buildOutput *DockerBuildOutput
+	buildOutput, err = ParseBuildCommandOutput(outputstr)
+	fmt.Println("ParseBuildRESTOutput: D")  // debug
+	return buildOutput, err
 }
 
 /*******************************************************************************
