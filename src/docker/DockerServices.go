@@ -653,6 +653,7 @@ func (desc *DockerfileExecParameterValueDesc) AsJSON() string {
 	
  * Another sample:
 	{"status":"Pulling from library/alpine","id":"latest"}
+	{"aux":{"ID":"sha256:76da55c8019d7a47c347c0dceb7a6591144d232a7dd616242a367b8bed18ecbc"}}
  */
 func extractBuildOutputFromRESTResponse(restResponse string) (string, error) {
 	
@@ -693,43 +694,44 @@ func extractBuildOutputFromRESTResponse(restResponse string) (string, error) {
 			if obj == nil {
 				// Check for error message.
 				obj = msgMap["error"]
-				if obj == nil { return "", utilities.ConstructServerError(
-					"Unexpected field: " + string(lineBytes))
-				}
-				fmt.Println("extractBuildOutputFromRESTResponse: A.4.1")  // debug
-				
-				// Error message found.
-				var errMsg string
-				errMsg, isType = obj.(string)
-				if ! isType { return "", utilities.ConstructServerError(
-					"Unexpected data in json error value; line: " + string(lineBytes))
-				}
-				fmt.Println("extractBuildOutputFromRESTResponse: A.4.2")  // debug
+				if obj == nil {
+					fmt.Println("Warning: ignoring message: " + string(lineBytes))
+				} else {
+					fmt.Println("extractBuildOutputFromRESTResponse: A.4.1")  // debug
+					
+					// Error message found.
+					var errMsg string
+					errMsg, isType = obj.(string)
+					if ! isType { return "", utilities.ConstructServerError(
+						"Unexpected data in json error value; line: " + string(lineBytes))
+					}
+					fmt.Println("extractBuildOutputFromRESTResponse: A.4.2")  // debug
+		
+					// Get error detail message.
+					obj = msgMap["errorDetail"]
+					if obj == nil { return "", utilities.ConstructServerError(
+						"Unexpected JSON field in errorDetail message: " + string(lineBytes))
+					}
+					fmt.Println("extractBuildOutputFromRESTResponse: A.4.3")  // debug
 	
-				// Get error detail message.
-				obj = msgMap["errorDetail"]
-				if obj == nil { return "", utilities.ConstructServerError(
-					"Unexpected JSON field in errorDetail message: " + string(lineBytes))
+					var errDetailMsgJSON map[string]interface{}
+					errDetailMsgJSON, isType = obj.(map[string]interface{})
+					if ! isType { return "", utilities.ConstructServerError(
+						"Unexpected data in json errorDetail value; line: " + string(lineBytes))
+					}
+					fmt.Println("extractBuildOutputFromRESTResponse: A.4.4")  // debug
+	
+					obj = errDetailMsgJSON["message"]
+					if obj == nil { return "", utilities.ConstructServerError(
+						"No message field in errorDetail message: " + string(lineBytes))
+					}
+					fmt.Println("extractBuildOutputFromRESTResponse: A.4.5")  // debug
+	
+					var errDetailMsg string
+					errDetailMsg, isType = obj.(string)
+					
+					return "", utilities.ConstructUserError(errMsg + "; " + errDetailMsg)
 				}
-				fmt.Println("extractBuildOutputFromRESTResponse: A.4.3")  // debug
-
-				var errDetailMsgJSON map[string]interface{}
-				errDetailMsgJSON, isType = obj.(map[string]interface{})
-				if ! isType { return "", utilities.ConstructServerError(
-					"Unexpected data in json errorDetail value; line: " + string(lineBytes))
-				}
-				fmt.Println("extractBuildOutputFromRESTResponse: A.4.4")  // debug
-
-				obj = errDetailMsgJSON["message"]
-				if obj == nil { return "", utilities.ConstructServerError(
-					"No message field in errorDetail message: " + string(lineBytes))
-				}
-				fmt.Println("extractBuildOutputFromRESTResponse: A.4.5")  // debug
-
-				var errDetailMsg string
-				errDetailMsg, isType = obj.(string)
-				
-				return "", utilities.ConstructUserError(errMsg + "; " + errDetailMsg)
 			}
 		}
 		fmt.Println("extractBuildOutputFromRESTResponse: A.5")  // debug
