@@ -705,13 +705,6 @@ func extractBuildOutputFromRESTResponse(restResponse string) (string, error) {
 					}
 					output = output + value
 					
-				case "aux":
-					value, isType = obj.(string)
-					if ! isType { return "", utilities.ConstructServerError(
-						"Unexpected type in json field value: " + reflect.TypeOf(obj).String())
-					}
-					output = output + value
-					
 				case "error":
 					
 					// Error message found.
